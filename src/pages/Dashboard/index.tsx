@@ -9,6 +9,7 @@ import api from '../../services/api';
 import Header from '../../components/Header';
 
 import formatValue from '../../utils/formatValue';
+import formatDate from '../../utils/formatDate';
 
 import { Container, CardContainer, Card, TableContainer } from './styles';
 
@@ -36,15 +37,25 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     async function loadTransactions(): Promise<void> {
       api.get(`transactions`).then(response => {
-        setTransactions(response.data.transactions);
+        setTransactions(
+          (response.data.transactions as Transaction[]).map<Transaction>(
+            transaction => {
+              const formattedValue = formatValue(Number(transaction.value));
+              const formattedDate = formatDate(transaction.created_at);
+              return {
+                ...transaction,
+                formattedValue,
+                formattedDate,
+              };
+            },
+          ),
+        );
         setBalance(response.data.balance);
       });
     }
 
     loadTransactions();
   }, []);
-  console.log('transactions', transactions);
-  console.log('balance', balance);
 
   return (
     <>
@@ -92,18 +103,18 @@ const Dashboard: React.FC = () => {
             </thead>
 
             <tbody>
-              <tr>
-                <td className="title">Computer</td>
-                <td className="income">R$ 5.000,00</td>
-                <td>Sell</td>
-                <td>20/04/2020</td>
-              </tr>
-              <tr>
-                <td className="title">Website Hosting</td>
-                <td className="outcome">- R$ 1.000,00</td>
-                <td>Hosting</td>
-                <td>19/04/2020</td>
-              </tr>
+              {transactions &&
+                transactions.map(transaction => (
+                  <tr key={transaction.id}>
+                    <td className="title">{transaction.title}</td>
+                    <td className={transaction.type}>
+                      {transaction.type === 'income' ? '' : '-'}
+                      {formatValue(Number(transaction.value))}
+                    </td>
+                    <td>{transaction.category.title}</td>
+                    <td>{transaction.formattedDate}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </TableContainer>
